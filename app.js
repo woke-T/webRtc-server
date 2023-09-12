@@ -1,5 +1,4 @@
 const http = require("http");
-const https = require("https");
 const path = require("path");
 const fs = require("fs");
 const express = require("express");
@@ -23,18 +22,14 @@ app.use((req, res, next) => {
 });
 redisClient.connect();
 
-const server = https.createServer(options, app);
 const httpServer = http.createServer(app)
-const io = new socket.Server(server);
+const io = new socket.Server(httpServer);
 
 io.on("connection", connectHandler);
 
 httpServer.listen(8000, async = () => {
-  
+  console.log("服务器启动成功 *:8000");
 })
-server.listen(443, async () => {
-  console.log("服务器启动成功 *:443");
-});
 
 async function connectHandler(socket) {
   const reqUrl = socket.client.request.url;
