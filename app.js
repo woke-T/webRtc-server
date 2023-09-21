@@ -11,7 +11,7 @@ const options = {
   cert: fs.readFileSync(path.join(__dirname, "./config/file.crt")),
 };
 
-const userMap = new Map(); // user - > socket
+const userMap = new Map(); // user - > socket1
 const ROOM_KEY_PREFIX = "meeting_room_";
 
 const app = express();
