@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # mysql数据库
+  mysql:
+    image: registry-public.cvte.com/qs-platform/mysql:latest
+    container_name: qs-mysql
+    restart: always
+    privileged: true
+    ports:
+      - '3306:3306'
+    networks:
+      qs-network:
+        aliases:
+          - mysql
+    volumes:
+      - ./mysql/config/my.cnf:/etc/mysql/my.cnf
+      - ./mysql/data/:/var/lib/mysql
+      - ./mysql/script/:/root
+    environment:
+      - MYSQL_ROOT_PASSWORD=qs@mysql
+
+  # redis缓存
+  redis:
+    image: registry-public.cvte.com/qs-platform/redis:latest
+    container_name: qs-redis
+    restart: always
+    privileged: true
+    ports:
+      - '6379:6379'
+    networks:
+      qs-network:
+        aliases:
+          - redis
+    volumes:
+      - ./redis/config/redis.conf:/etc/redis/redis.conf
+      - ./redis/data:/data
+      - ./redis/logs:/logs
+    command: redis-server --requirepass qs@redis
+
+  # XWST文档处理服务
+  libreoffice:
+    image: registry-public.cvte.com/qs-platform/centos-libreoffice:latest
+    container_name: qs-libreoffice
+    restart: always
+    privileged: true
+    networks:
+      qs-network:
+        aliases:
+          - libreoffice
+
+  # XWST信息发布服务
+  gtv:
+    image: registry-public.cvte.com/qs-platform/alpine-jdk1.8.0_241-plugin:latest
+    container_name: qs-gtv
+    restart: always
+    privileged: true
+    ports:
+      - '8088:8088/tcp'
+      - '4701:4701/tcp'
+      - '4700:4700/udp'
+    networks:
+      qs-network:
+        aliases:
+          - gtv
+    volumes:
+      - ./gtv/cdmsA:/home/cdmsA
+      - ./gtv/dist/app.jar:/home/app.jar
+      - ./gtv/logs:/home/logs
+      - ./gtv/config:/home/config
+      - ./gtv/start.sh:/home/start.sh
+    command: sh -c "sh /home/start.sh"
+    depends_on:
+      - mysql
+      - redis
+      - libreoffice
+    # 根据不同机器替换容器 mac 地址，首次启动会生成 ./gtv/logs/MAC.txt
+    mac_address: 02:42:AC:11:00:05
+
+  # QS统一平台后台服务
+  qs-platform-server:
+    image: registry-public.cvte.com/qs-platform/qs-platform-server:release-91da8ab-07251028
+    container_name: qs-platform-server
+    restart: always
+    privileged: true
+    ports:
+      - '8080:8080'
+    networks:
+      qs-network:
+        aliases:
+          - qs-platform-server
+    volumes:
+      # - ./qs-platform-server/dist/qs-platform-server.jar:/app/app/qs-platform-server.jar
+      - ./qs-platform-server/logs:/app/logs
+      - ./qs-platform-server/config/application.properties:/app/config/application.properties
+    environment:
+      - JAVA_OPTS=-Dspring.config.location=/app/config/application.properties
+    depends_on:
+      - mysql
+      - redis
+      - libreoffice
+      - gtv
+
+  # QS统一平台信息发布前端
+  qs-information-publish-front:
+    image: registry-public.cvte.com/qs-platform/mes-rel-front-end:fat-e306541-07251037
+    container_name: qs-information-publish-front
+    restart: always
+    privileged: true
+    ports:
+      - "80:80"
+    networks:
+      qs-network:
+        aliases:
+          - qs-information-publish-front
+    volumes:
+      - ./qs-information-publish-front/config/nginx.conf:/etc/nginx/nginx.conf
+      - ./qs-information-publish-front/config/conf.d:/etc/nginx/conf.d
+      - ./qs-information-publish-front/logs:/var/log/nginx
+    depends_on:
+      - mysql
+      - redis
+      - libreoffice
+      - gtv
+      - qs-platform-server
+
+networks:
+  qs-network:
+    driver: bridge

@@ -6,10 +6,6 @@ const socket = require("socket.io");
 const { hDel, hGetAll, hSet, redisClient } = require("./lib/redis");
 const { getParamsFromUrl, getMsg } = require("./lib/utils");
 
-const options = {
-  key: fs.readFileSync(path.join(__dirname, "./config/private.pem")),
-  cert: fs.readFileSync(path.join(__dirname, "./config/file.crt")),
-};
 
 const userMap = new Map(); // user - > socket1
 const ROOM_KEY_PREFIX = "meeting_room_";
